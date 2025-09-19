@@ -45,6 +45,7 @@ export default function App() {
   const [currentCameraPosition, setCurrentCameraPosition] = useState<THREE.Vector3>(new THREE.Vector3(0, 1, 5));
   const [showInstructions, setShowInstructions] = useState(true);
   const [enableMusic, setEnableMusic] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
   const { startRecording, downloadVideo } = useVideoCapture();
   const {
@@ -150,7 +151,7 @@ export default function App() {
     <div className="relative w-screen h-screen">
       <Canvas
         ref={canvasRef}
-        className="w-full h-full bg-gray-900"
+        className={`w-full h-full ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'}`}
         camera={{ position: [0, 1, 5], fov: 50 }}
         shadows={false}
       >
@@ -159,11 +160,11 @@ export default function App() {
         <directionalLight position={[10, 10, 5]} intensity={0.8} />
         <directionalLight position={[-10, -10, -5]} intensity={0.4} />
 
-        {/* Video mode: Professional gradient background */}
+        {/* Video mode: Background based on light/dark mode */}
         {isVideoMode && (
           <mesh position={[0, 0, -20]} scale={[60, 40, 1]}>
             <planeGeometry />
-            <meshBasicMaterial color="#0a1628" />
+            <meshBasicMaterial color={isDarkMode ? "#000000" : "#f0f0f0"} />
           </mesh>
         )}
 
@@ -173,7 +174,7 @@ export default function App() {
         {!isVideoMode && (
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
             <planeGeometry args={[20, 20]} />
-            <meshBasicMaterial color="#333" transparent opacity={0.2} />
+            <meshBasicMaterial color={isDarkMode ? "#333" : "#ccc"} transparent opacity={0.2} />
           </mesh>
         )}
 
@@ -212,7 +213,7 @@ export default function App() {
             enablePan={!isDraggingAsset}
             enableZoom={!isDraggingAsset}
             enableRotate={!isDraggingAsset}
-            minDistance={2}
+            minDistance={0.1}
             maxDistance={20}
             target={[0, 1, 0]}
           />
@@ -405,19 +406,37 @@ export default function App() {
             Creates dynamic videos with ultra-close camera movements. Single assets: 20s dramatic zoom showcase. Multiple assets: Dynamic duration (4s per asset) with individual close-up tours.
           </div>
 
-          {/* Music Toggle - Right above generate button */}
-          <div className="flex items-center justify-between mb-3 p-2 bg-gray-800/30 rounded border border-gray-600">
-            <span className="text-white text-sm">🎵 Music</span>
-            <button
-              onClick={() => setEnableMusic(!enableMusic)}
-              className={`px-2 py-1 rounded text-xs transition-colors ${
-                enableMusic
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-600 text-gray-300'
-              }`}
-            >
-              {enableMusic ? 'ON' : 'OFF'}
-            </button>
+          {/* Video Settings */}
+          <div className="space-y-2 mb-3">
+            {/* Music Toggle */}
+            <div className="flex items-center justify-between p-2 bg-gray-800/30 rounded border border-gray-600">
+              <span className="text-white text-sm">🎵 Music</span>
+              <button
+                onClick={() => setEnableMusic(!enableMusic)}
+                className={`px-2 py-1 rounded text-xs transition-colors ${
+                  enableMusic
+                    ? 'bg-green-600 text-white'
+                    : 'bg-gray-600 text-gray-300'
+                }`}
+              >
+                {enableMusic ? 'ON' : 'OFF'}
+              </button>
+            </div>
+
+            {/* Background Mode Toggle */}
+            <div className="flex items-center justify-between p-2 bg-gray-800/30 rounded border border-gray-600">
+              <span className="text-white text-sm">🎨 Background</span>
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className={`px-2 py-1 rounded text-xs transition-colors ${
+                  isDarkMode
+                    ? 'bg-gray-800 text-white'
+                    : 'bg-gray-200 text-gray-800'
+                }`}
+              >
+                {isDarkMode ? 'DARK' : 'LIGHT'}
+              </button>
+            </div>
           </div>
 
           <button
