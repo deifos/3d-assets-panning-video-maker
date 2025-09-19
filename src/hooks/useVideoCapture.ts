@@ -106,10 +106,12 @@ export const useVideoCapture = () => {
       }, duration * 1000);
 
       // Only stop after extra time to ensure full capture
+      const stopTimeout = (duration + 1) * 1000;
+      console.log(`🎵 Audio will stop after ${stopTimeout}ms (${duration + 1}s)`);
       setTimeout(() => {
-        console.log('🎵 Now stopping audio element...');
+        console.log(`🎵 Now stopping audio element after ${duration + 1}s...`);
         audioElement.pause();
-      }, (duration + 1) * 1000);
+      }, stopTimeout);
 
       return { audioSource, cleanup };
 
@@ -188,11 +190,13 @@ export const useVideoCapture = () => {
     const fps = 30;
     const totalFrames = duration * fps;
     let frameCount = 0;
+    const startTime = performance.now();
 
     return new Promise<Uint8Array>((resolve, reject) => {
       const captureFrame = () => {
         if (!isRecordingRef.current || frameCount >= totalFrames) {
           // Finish recording
+          console.log(`🎥 Recording finished: captured ${frameCount} frames for ${duration}s video`);
           finishRecording()
             .then(resolve)
             .catch(reject);
@@ -201,6 +205,11 @@ export const useVideoCapture = () => {
 
         const timestampInSeconds = frameCount / fps;
         const durationInSeconds = 1 / fps;
+
+        // Log progress every 30 frames (every second at 30fps)
+        if (frameCount % 30 === 0) {
+          console.log(`🎥 Frame capture: ${frameCount}/${totalFrames} frames (${timestampInSeconds.toFixed(1)}s)`);
+        }
 
         try {
           // Ensure canvas size remains constant during recording
@@ -213,8 +222,19 @@ export const useVideoCapture = () => {
           videoSource.add(timestampInSeconds, durationInSeconds);
           frameCount++;
 
-          // Schedule next frame
-          requestAnimationFrame(captureFrame);
+          // Calculate when the next frame should be captured
+          const expectedTime = startTime + (frameCount * 1000 / fps);
+          const currentTime = performance.now();
+          const delay = Math.max(0, expectedTime - currentTime);
+
+          // Use requestAnimationFrame with timing control
+          if (delay > 10) {
+            // If we're ahead of schedule, wait a bit
+            setTimeout(() => requestAnimationFrame(captureFrame), delay - 10);
+          } else {
+            // Otherwise, capture next frame immediately
+            requestAnimationFrame(captureFrame);
+          }
         } catch (error) {
           console.error('❌ Frame capture error:', error);
           reject(error);
