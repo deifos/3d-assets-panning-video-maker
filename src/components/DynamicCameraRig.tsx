@@ -160,16 +160,16 @@ export const DynamicCameraRig = forwardRef<DynamicCameraRigRef, DynamicCameraRig
           fov: 50
         },
 
-        // 20s - Final dramatic zoom out
+        // 20s - Final moderate zoom out (closer)
         {
           time: 20,
           position: new THREE.Vector3(
-            assetPos.x + Math.sin(baseAngle + 4.2 * sideMovement) * 7,
-            assetPos.y + 4,
-            assetPos.z + Math.cos(baseAngle + 4.2 * sideMovement) * 7
+            assetPos.x + Math.sin(baseAngle + 4.2 * sideMovement) * 4.5,
+            assetPos.y + 2.5,
+            assetPos.z + Math.cos(baseAngle + 4.2 * sideMovement) * 4.5
           ),
           lookAt: assetPos.clone(),
-          fov: 65
+          fov: 55
         }
       ];
     };
@@ -287,16 +287,16 @@ export const DynamicCameraRig = forwardRef<DynamicCameraRigRef, DynamicCameraRig
         }
       });
 
-      // Final dramatic zoom-out (dynamic time)
+      // Final moderate zoom-out (dynamic time) - closer
       movements.push({
         time: dynamicDuration,
         position: new THREE.Vector3(
-          center.x + Math.sin(baseAngle + 6) * 8,
-          center.y + 5,
-          center.z + Math.cos(baseAngle + 6) * 8
+          center.x + Math.sin(baseAngle + 6) * 5,
+          center.y + 3,
+          center.z + Math.cos(baseAngle + 6) * 5
         ),
         lookAt: center.clone(),
-        fov: 70
+        fov: 60
       });
 
       // Sort by time to ensure proper order

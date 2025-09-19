@@ -147,10 +147,10 @@ export default function App() {
   }, [startRecording, downloadVideo, isRecording, assets.length]);
 
   return (
-    <div className="relative w-screen min-h-screen flex flex-col">
+    <div className="relative w-screen h-screen">
       <Canvas
         ref={canvasRef}
-        className="w-full flex-1 bg-gray-900"
+        className="w-full h-full bg-gray-900"
         camera={{ position: [0, 1, 5], fov: 50 }}
         shadows={false}
       >
@@ -471,7 +471,9 @@ export default function App() {
         </div>
       )}
 
-      <Footer />
+      <div className="absolute bottom-0 left-0 right-0 z-10">
+        <Footer />
+      </div>
     </div>
   );
 }
