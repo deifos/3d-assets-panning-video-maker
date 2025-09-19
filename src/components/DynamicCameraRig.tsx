@@ -136,40 +136,40 @@ export const DynamicCameraRig = forwardRef<DynamicCameraRigRef, DynamicCameraRig
           fov: 30
         },
 
-        // 15s - Start pulling back smoothly
+        // 15s - Close spinning motion
         {
           time: 15,
           position: new THREE.Vector3(
-            assetPos.x + Math.sin(baseAngle + 2.8 * sideMovement) * 2.5,
-            assetPos.y + 1.5,
-            assetPos.z + Math.cos(baseAngle + 2.8 * sideMovement) * 2.5
+            assetPos.x + Math.sin(baseAngle + 2.8 * sideMovement) * 2,
+            assetPos.y + 1.2,
+            assetPos.z + Math.cos(baseAngle + 2.8 * sideMovement) * 2
           ),
           lookAt: assetPos.clone(),
-          fov: 40
+          fov: 35
         },
 
-        // 18s - Continuing zoom out
+        // 18s - Continue close spinning
         {
           time: 18,
           position: new THREE.Vector3(
-            assetPos.x + Math.sin(baseAngle + 3.5 * sideMovement) * 4,
-            assetPos.y + 2.5,
-            assetPos.z + Math.cos(baseAngle + 3.5 * sideMovement) * 4
+            assetPos.x + Math.sin(baseAngle + 4.5 * sideMovement) * 2.2,
+            assetPos.y + 1.4,
+            assetPos.z + Math.cos(baseAngle + 4.5 * sideMovement) * 2.2
           ),
           lookAt: assetPos.clone(),
-          fov: 50
+          fov: 38
         },
 
-        // 20s - Final moderate zoom out (closer)
+        // 20s - Final close spinning position
         {
           time: 20,
           position: new THREE.Vector3(
-            assetPos.x + Math.sin(baseAngle + 4.2 * sideMovement) * 4.5,
-            assetPos.y + 2.5,
-            assetPos.z + Math.cos(baseAngle + 4.2 * sideMovement) * 4.5
+            assetPos.x + Math.sin(baseAngle + 6.5 * sideMovement) * 2.3,
+            assetPos.y + 1.5,
+            assetPos.z + Math.cos(baseAngle + 6.5 * sideMovement) * 2.3
           ),
           lookAt: assetPos.clone(),
-          fov: 55
+          fov: 40
         }
       ];
     };
@@ -287,16 +287,16 @@ export const DynamicCameraRig = forwardRef<DynamicCameraRigRef, DynamicCameraRig
         }
       });
 
-      // Final moderate zoom-out (dynamic time) - closer
+      // Final close spinning motion instead of zoom-out
       movements.push({
         time: dynamicDuration,
         position: new THREE.Vector3(
-          center.x + Math.sin(baseAngle + 6) * 5,
-          center.y + 3,
-          center.z + Math.cos(baseAngle + 6) * 5
+          center.x + Math.sin(baseAngle + 8) * 3,
+          center.y + 2,
+          center.z + Math.cos(baseAngle + 8) * 3
         ),
         lookAt: center.clone(),
-        fov: 60
+        fov: 45
       });
 
       // Sort by time to ensure proper order
