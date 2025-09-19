@@ -1,12 +1,36 @@
-import { useRef, useState, useCallback } from "react";
-import { Canvas } from "@react-three/fiber";
+import { useRef, useState, useCallback, useEffect } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
+import * as THREE from "three";
 import { useVideoCapture } from "./hooks/useVideoCapture";
 import { useAssetManager } from "./hooks/useAssetManager";
 import { DynamicCameraRig } from "./components/DynamicCameraRig";
 import { AssetRenderer } from "./components/AssetRenderer";
 import type { DynamicCameraRigRef } from "./components/DynamicCameraRig";
 
+// Camera tracker component
+function CameraTracker({ onCameraMove }: { onCameraMove: (position: THREE.Vector3) => void }) {
+  const { camera } = useThree();
+
+  // Update camera position whenever it changes
+  useEffect(() => {
+    const updatePosition = () => {
+      onCameraMove(camera.position.clone());
+    };
+
+    // Initial position
+    updatePosition();
+
+    // Use a simple interval to track camera changes
+    const interval = setInterval(updatePosition, 100);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [camera, onCameraMove]);
+
+  return null;
+}
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -17,6 +41,7 @@ export default function App() {
   const [isVideoMode, setIsVideoMode] = useState(false);
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [isDraggingAsset, setIsDraggingAsset] = useState(false);
+  const [currentCameraPosition, setCurrentCameraPosition] = useState<THREE.Vector3>(new THREE.Vector3(0, 1, 5));
 
   const { startRecording, downloadVideo } = useVideoCapture();
   const {
@@ -123,13 +148,25 @@ export default function App() {
       <Canvas
         ref={canvasRef}
         className="w-full h-full bg-gray-900"
-        camera={{ position: [0, 3, 8], fov: 50 }}
+        camera={{ position: [0, 1, 5], fov: 50 }}
+        shadows={false}
       >
-        <ambientLight intensity={0.4} />
-        <directionalLight position={[10, 10, 5]} intensity={1} />
-        <directionalLight position={[-10, -10, -5]} intensity={0.3} />
+        {/* Simple, even lighting */}
+        <ambientLight intensity={0.6} />
+        <directionalLight position={[10, 10, 5]} intensity={0.8} />
+        <directionalLight position={[-10, -10, -5]} intensity={0.4} />
 
-        {/* Ground plane for reference (only visible in preview mode) */}
+        {/* Video mode: Professional gradient background */}
+        {isVideoMode && (
+          <mesh position={[0, 0, -20]} scale={[60, 40, 1]}>
+            <planeGeometry />
+            <meshBasicMaterial color="#0a1628" />
+          </mesh>
+        )}
+
+
+
+        {/* Simple ground plane */}
         {!isVideoMode && (
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
             <planeGeometry args={[20, 20]} />
@@ -152,6 +189,11 @@ export default function App() {
           />
         ))}
 
+        {/* Camera tracker for capturing position */}
+        {!isVideoMode && (
+          <CameraTracker onCameraMove={setCurrentCameraPosition} />
+        )}
+
         {/* Camera controls */}
         {isVideoMode ? (
           <DynamicCameraRig
@@ -159,6 +201,7 @@ export default function App() {
             enabled={true}
             duration={20}
             assetsPositions={getAssetsPositions()}
+            startPosition={currentCameraPosition}
           />
         ) : (
           // In preview mode, just use OrbitControls - no camera rig
@@ -168,7 +211,7 @@ export default function App() {
             enableRotate={!isDraggingAsset}
             minDistance={2}
             maxDistance={20}
-            target={[0, 0, 0]}
+            target={[0, 1, 0]}
           />
         )}
       </Canvas>

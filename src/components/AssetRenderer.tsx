@@ -68,7 +68,6 @@ export function AssetRenderer({ asset, isSelected, onSelect, onPositionChange, o
     } else if (isRotating) {
       // Rotation mode
       const deltaX = pointer.x - lastPointerPosition.x;
-      const deltaY = pointer.y - lastPointerPosition.y;
 
       // Rotate around Y-axis based on horizontal movement
       const rotationSpeed = 3;

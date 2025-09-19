@@ -13,6 +13,7 @@ interface DynamicCameraRigProps {
   enabled?: boolean;
   duration?: number;
   assetsPositions?: THREE.Vector3[];
+  startPosition?: THREE.Vector3;
 }
 
 interface CameraKeyframe {
@@ -23,7 +24,7 @@ interface CameraKeyframe {
 }
 
 export const DynamicCameraRig = forwardRef<DynamicCameraRigRef, DynamicCameraRigProps>(
-  ({ enabled = false, duration = 20, assetsPositions = [new THREE.Vector3(0, 0, 0)] }, ref) => {
+  ({ enabled = false, duration = 20, assetsPositions = [new THREE.Vector3(0, 0, 0)], startPosition }, ref) => {
     const { camera } = useThree();
     const animationStartTimeRef = useRef<number | null>(null);
     const isRecordingRef = useRef(false);
@@ -58,137 +59,117 @@ export const DynamicCameraRig = forwardRef<DynamicCameraRigRef, DynamicCameraRig
     const generateSingleAssetAnimation = (assetPos: THREE.Vector3, baseAngle: number) => {
       console.log('🎯 Single asset: Creating close-up dramatic orbit with zoom effects');
 
+      // Vary the movement pattern based on the base angle
+      const movementVariation = (baseAngle % (Math.PI * 2)) / (Math.PI * 2);
+      const heightVariation = movementVariation > 0.5 ? 1 : -1; // Sometimes go lower, sometimes higher
+
+      // Create more varied movement patterns
+      const sideMovement = movementVariation > 0.5 ? 1 : -1; // Sometimes clockwise, sometimes counter-clockwise
+      const heightPattern = heightVariation > 0 ? 0.5 : -0.5; // Vary the height approach
+
       return [
-        // 0s - Very close dramatic entrance
+        // 0s - Start from current camera position
         {
           time: 0,
-          position: new THREE.Vector3(
-            assetPos.x + Math.sin(baseAngle) * 2.5,
-            assetPos.y + 1.8,
-            assetPos.z + Math.cos(baseAngle) * 2.5
+          position: startPosition ? startPosition.clone() : new THREE.Vector3(
+            assetPos.x + Math.sin(baseAngle) * 3,
+            assetPos.y + 2,
+            assetPos.z + Math.cos(baseAngle) * 3
           ),
           lookAt: assetPos.clone(),
-          fov: 35
+          fov: 50
         },
 
-        // 2s - Close sweeping approach
+        // 3s - Very slow, smooth transition (longer time for smoothness)
         {
-          time: 2,
-          position: new THREE.Vector3(
-            assetPos.x + Math.sin(baseAngle + 0.5) * 2,
-            assetPos.y + 1.5,
-            assetPos.z + Math.cos(baseAngle + 0.5) * 2
-          ),
-          lookAt: assetPos.clone(),
-          fov: 40
-        },
-
-        // 4s - Intimate orbit around asset
-        {
-          time: 4,
-          position: new THREE.Vector3(
-            assetPos.x + Math.sin(baseAngle + 1) * 1.8,
-            assetPos.y + 1.2,
-            assetPos.z + Math.cos(baseAngle + 1) * 1.8
+          time: 3,
+          position: startPosition ? new THREE.Vector3().lerpVectors(
+            startPosition,
+            new THREE.Vector3(
+              assetPos.x + Math.sin(baseAngle + 0.2 * sideMovement) * 3,
+              assetPos.y + 2 + heightPattern,
+              assetPos.z + Math.cos(baseAngle + 0.2 * sideMovement) * 3
+            ),
+            0.5
+          ) : new THREE.Vector3(
+            assetPos.x + Math.sin(baseAngle + 0.2 * sideMovement) * 3,
+            assetPos.y + 2 + heightPattern,
+            assetPos.z + Math.cos(baseAngle + 0.2 * sideMovement) * 3
           ),
           lookAt: assetPos.clone(),
           fov: 45
         },
 
-        // 6s - Detail inspection orbit
+        // 6s - Gentle approach
         {
           time: 6,
           position: new THREE.Vector3(
-            assetPos.x + Math.sin(baseAngle + 1.8) * 1.5,
-            assetPos.y + 1,
-            assetPos.z + Math.cos(baseAngle + 1.8) * 1.5
-          ),
-          lookAt: assetPos.clone(),
-          fov: 50
-        },
-
-        // 8s - Very intimate orbit
-        {
-          time: 8,
-          position: new THREE.Vector3(
-            assetPos.x + Math.sin(baseAngle + 2.8) * 1.3,
-            assetPos.y + 0.8,
-            assetPos.z + Math.cos(baseAngle + 2.8) * 1.3
+            assetPos.x + Math.sin(baseAngle + 0.6 * sideMovement) * 2.5,
+            assetPos.y + 1.5 + heightPattern * 0.5,
+            assetPos.z + Math.cos(baseAngle + 0.6 * sideMovement) * 2.5
           ),
           lookAt: assetPos.clone(),
           fov: 40
         },
 
-        // 10s - Start dramatic zoom sequence
+        // 9s - Intimate orbit
         {
-          time: 10,
+          time: 9,
           position: new THREE.Vector3(
-            assetPos.x + Math.sin(baseAngle + 3.5) * 1.6,
-            assetPos.y + 1,
-            assetPos.z + Math.cos(baseAngle + 3.5) * 1.6
-          ),
-          lookAt: assetPos.clone(),
-          fov: 45
-        },
-
-        // 12s - Fast zoom in (dramatic effect)
-        {
-          time: 12,
-          position: new THREE.Vector3(
-            assetPos.x + Math.sin(baseAngle + 4) * 1.1,
-            assetPos.y + 0.6,
-            assetPos.z + Math.cos(baseAngle + 4) * 1.1
-          ),
-          lookAt: assetPos.clone(),
-          fov: 25 // Close zoom
-        },
-
-        // 14s - Slow down as it gets closer
-        {
-          time: 14,
-          position: new THREE.Vector3(
-            assetPos.x + Math.sin(baseAngle + 4.3) * 0.9,
-            assetPos.y + 0.5,
-            assetPos.z + Math.cos(baseAngle + 4.3) * 0.9
-          ),
-          lookAt: assetPos.clone(),
-          fov: 20 // Very close
-        },
-
-        // 16s - Closest point (almost touching)
-        {
-          time: 16,
-          position: new THREE.Vector3(
-            assetPos.x + Math.sin(baseAngle + 4.5) * 0.8,
-            assetPos.y + 0.5,
-            assetPos.z + Math.cos(baseAngle + 4.5) * 0.8
-          ),
-          lookAt: assetPos.clone(),
-          fov: 15 // Extreme close-up
-        },
-
-        // 18s - Pull back with regular speed
-        {
-          time: 18,
-          position: new THREE.Vector3(
-            assetPos.x + Math.sin(baseAngle + 5) * 1.4,
-            assetPos.y + 0.8,
-            assetPos.z + Math.cos(baseAngle + 5) * 1.4
+            assetPos.x + Math.sin(baseAngle + 1.2 * sideMovement) * 2,
+            assetPos.y + 1.2,
+            assetPos.z + Math.cos(baseAngle + 1.2 * sideMovement) * 2
           ),
           lookAt: assetPos.clone(),
           fov: 35
         },
 
-        // 20s - Final close reveal
+        // 12s - Close inspection
         {
-          time: 20,
+          time: 12,
           position: new THREE.Vector3(
-            assetPos.x + Math.sin(baseAngle + 5.5) * 2,
+            assetPos.x + Math.sin(baseAngle + 2 * sideMovement) * 1.8,
+            assetPos.y + 0.8,
+            assetPos.z + Math.cos(baseAngle + 2 * sideMovement) * 1.8
+          ),
+          lookAt: assetPos.clone(),
+          fov: 30
+        },
+
+        // 15s - Start pulling back smoothly
+        {
+          time: 15,
+          position: new THREE.Vector3(
+            assetPos.x + Math.sin(baseAngle + 2.8 * sideMovement) * 2.5,
             assetPos.y + 1.5,
-            assetPos.z + Math.cos(baseAngle + 5.5) * 2
+            assetPos.z + Math.cos(baseAngle + 2.8 * sideMovement) * 2.5
+          ),
+          lookAt: assetPos.clone(),
+          fov: 40
+        },
+
+        // 18s - Continuing zoom out
+        {
+          time: 18,
+          position: new THREE.Vector3(
+            assetPos.x + Math.sin(baseAngle + 3.5 * sideMovement) * 4,
+            assetPos.y + 2.5,
+            assetPos.z + Math.cos(baseAngle + 3.5 * sideMovement) * 4
           ),
           lookAt: assetPos.clone(),
           fov: 50
+        },
+
+        // 20s - Final dramatic zoom out
+        {
+          time: 20,
+          position: new THREE.Vector3(
+            assetPos.x + Math.sin(baseAngle + 4.2 * sideMovement) * 7,
+            assetPos.y + 4,
+            assetPos.z + Math.cos(baseAngle + 4.2 * sideMovement) * 7
+          ),
+          lookAt: assetPos.clone(),
+          fov: 65
         }
       ];
     };
@@ -202,46 +183,56 @@ export const DynamicCameraRig = forwardRef<DynamicCameraRigRef, DynamicCameraRig
       console.log(`🎯 Multiple assets: Creating ${dynamicDuration}s video for ${assets.length} assets (${minSecondsPerAsset}s each + ${introDuration}s intro)`);
 
       const movements = [
-        // 0-6s: Close general showcase of all assets
+        // 0s: Start from current camera position
         {
           time: 0,
-          position: new THREE.Vector3(
+          position: startPosition ? startPosition.clone() : new THREE.Vector3(
             center.x + Math.sin(baseAngle) * 3.5,
             center.y + 2.5,
             center.z + Math.cos(baseAngle) * 3.5
+          ),
+          lookAt: center.clone(),
+          fov: 50
+        },
+
+        // 2s: Very slow, smooth transition to planned showcase
+        {
+          time: 2,
+          position: startPosition ? new THREE.Vector3().lerpVectors(
+            startPosition,
+            new THREE.Vector3(
+              center.x + Math.sin(baseAngle) * 3.5,
+              center.y + 2.5,
+              center.z + Math.cos(baseAngle) * 3.5
+            ),
+            0.4
+          ) : new THREE.Vector3(
+            center.x + Math.sin(baseAngle) * 3.5,
+            center.y + 2.5,
+            center.z + Math.cos(baseAngle) * 3.5
+          ),
+          lookAt: center.clone(),
+          fov: 45
+        },
+
+        // 4s: Continue gentle movement
+        {
+          time: 4,
+          position: new THREE.Vector3(
+            center.x + Math.sin(baseAngle + 0.4) * 3.5,
+            center.y + 2.5,
+            center.z + Math.cos(baseAngle + 0.4) * 3.5
           ),
           lookAt: center.clone(),
           fov: 40
         },
 
         {
-          time: 2,
+          time: 6,
           position: new THREE.Vector3(
             center.x + Math.sin(baseAngle + 0.8) * 3,
             center.y + 2,
             center.z + Math.cos(baseAngle + 0.8) * 3
-          ),
-          lookAt: center.clone(),
-          fov: 45
-        },
-
-        {
-          time: 4,
-          position: new THREE.Vector3(
-            center.x + Math.sin(baseAngle + 1.6) * 2.5,
-            center.y + 1.5,
-            center.z + Math.cos(baseAngle + 1.6) * 2.5
-          ),
-          lookAt: center.clone(),
-          fov: 50
-        },
-
-        {
-          time: 6,
-          position: new THREE.Vector3(
-            center.x + Math.sin(baseAngle + 2.4) * 3,
-            center.y + 2,
-            center.z + Math.cos(baseAngle + 2.4) * 3
           ),
           lookAt: center.clone(),
           fov: 45
@@ -257,55 +248,55 @@ export const DynamicCameraRig = forwardRef<DynamicCameraRigRef, DynamicCameraRig
         const midTime = startTime + (timePerAsset * 0.5);
         const endTime = startTime + timePerAsset;
 
-        // Approach asset - very close
+        // Approach asset - safe distance
         movements.push({
           time: startTime,
           position: new THREE.Vector3(
-            asset.x + Math.sin(baseAngle + index) * 1.5,
-            asset.y + 1,
-            asset.z + Math.cos(baseAngle + index) * 1.5
+            asset.x + Math.sin(baseAngle + index) * 2.5,
+            asset.y + 1.5,
+            asset.z + Math.cos(baseAngle + index) * 2.5
           ),
           lookAt: asset.clone(),
-          fov: 30
+          fov: 40
         });
 
-        // Close-up of asset - extremely close
+        // Close-up of asset - safe but close
         movements.push({
           time: midTime,
           position: new THREE.Vector3(
-            asset.x + Math.sin(baseAngle + index + 0.3) * 1,
-            asset.y + 0.6,
-            asset.z + Math.cos(baseAngle + index + 0.3) * 1
+            asset.x + Math.sin(baseAngle + index + 0.3) * 2,
+            asset.y + 1,
+            asset.z + Math.cos(baseAngle + index + 0.3) * 2
           ),
           lookAt: asset.clone(),
-          fov: 20
+          fov: 35
         });
 
-        // Transition to next (unless it's the last asset) - very close
+        // Transition to next (unless it's the last asset)
         if (index < assets.length - 1) {
           movements.push({
             time: endTime,
             position: new THREE.Vector3(
-              asset.x + Math.sin(baseAngle + index + 0.6) * 1.3,
-              asset.y + 0.8,
-              asset.z + Math.cos(baseAngle + index + 0.6) * 1.3
+              asset.x + Math.sin(baseAngle + index + 0.6) * 2.2,
+              asset.y + 1.2,
+              asset.z + Math.cos(baseAngle + index + 0.6) * 2.2
             ),
             lookAt: assets[index + 1].clone(),
-            fov: 35
+            fov: 45
           });
         }
       });
 
-      // Final close reveal (dynamic time, stay close)
+      // Final dramatic zoom-out (dynamic time)
       movements.push({
         time: dynamicDuration,
         position: new THREE.Vector3(
-          center.x + Math.sin(baseAngle + 6) * 2.5,
-          center.y + 2,
-          center.z + Math.cos(baseAngle + 6) * 2.5
+          center.x + Math.sin(baseAngle + 6) * 8,
+          center.y + 5,
+          center.z + Math.cos(baseAngle + 6) * 8
         ),
         lookAt: center.clone(),
-        fov: 55
+        fov: 70
       });
 
       // Sort by time to ensure proper order
