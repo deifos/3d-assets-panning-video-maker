@@ -1,25 +1,147 @@
 import { useCallback, useRef } from 'react';
-import { Output, Mp4OutputFormat, BufferTarget, CanvasSource } from 'mediabunny';
+import { Output, Mp4OutputFormat, BufferTarget, CanvasSource, MediaStreamAudioTrackSource } from 'mediabunny';
 
 export const useVideoCapture = () => {
   const isRecordingRef = useRef(false);
   const outputRef = useRef<Output | null>(null);
   const videoSourceRef = useRef<CanvasSource | null>(null);
+  const audioSourceRef = useRef<MediaStreamAudioTrackSource | null>(null);
+  const audioCleanupRef = useRef<(() => void) | null>(null);
 
-  const startRecording = useCallback(async (canvas: HTMLCanvasElement, duration: number = 5) => {
+  const createAudioStreamFromFile = useCallback(async (audioPath: string, duration: number): Promise<{ audioSource: MediaStreamAudioTrackSource; cleanup: () => void } | null> => {
+    try {
+      console.log('🎵 Creating audio element for playback...');
+
+      // Create audio element (simpler approach)
+      const audioElement = new Audio();
+      audioElement.src = audioPath;
+      audioElement.crossOrigin = 'anonymous';
+      audioElement.loop = true; // Loop the audio if it's shorter than the video
+
+      // Load and wait for metadata
+      await new Promise((resolve, reject) => {
+        audioElement.addEventListener('loadedmetadata', resolve);
+        audioElement.addEventListener('error', reject);
+        audioElement.load();
+      });
+
+      // Calculate random start position
+      const maxStartTime = Math.max(0, audioElement.duration - duration);
+      const randomStartTime = Math.random() * maxStartTime;
+
+      console.log(`🎵 Audio: ${audioElement.duration.toFixed(1)}s total, starting at ${randomStartTime.toFixed(1)}s for ${duration}s`);
+
+      // Set start time and volume
+      audioElement.currentTime = randomStartTime;
+      audioElement.volume = 0.3; // Set element volume as backup
+
+      // Create audio context for MediaStream
+      const audioContext = new AudioContext();
+      const mediaElementSource = audioContext.createMediaElementSource(audioElement);
+
+      // Create gain node for volume control and fading
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = 0; // Start silent for fade in
+
+      const destination = audioContext.createMediaStreamDestination();
+
+      // Connect audio graph: mediaElement -> gainNode -> destination/speakers
+      mediaElementSource.connect(gainNode);
+      gainNode.connect(destination);
+      gainNode.connect(audioContext.destination); // This allows us to hear the audio
+
+      // Add event listeners for debugging
+      audioElement.addEventListener('ended', () => {
+        console.log('🎵 Audio element ended naturally');
+      });
+
+      audioElement.addEventListener('pause', () => {
+        console.log('🎵 Audio element was paused');
+      });
+
+      // Start playing the audio BEFORE getting the track
+      await audioElement.play();
+      console.log('✅ Audio element started playing');
+      console.log('🎵 Audio will play from', randomStartTime.toFixed(1), 'to', (randomStartTime + duration).toFixed(1));
+
+      // Wait a moment for the stream to be fully active
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Set constant volume (no fading)
+      const targetVolume = 0.3; // Lower volume (30% instead of 70%)
+
+      console.log('🎵 Setting constant volume:', targetVolume);
+
+      // Set constant gain value
+      gainNode.gain.value = targetVolume;
+
+      // Get audio track
+      const audioTrack = destination.stream.getAudioTracks()[0];
+
+      if (!audioTrack) {
+        throw new Error('No audio track available from audio element');
+      }
+
+      console.log('🎵 Audio track state:', audioTrack.readyState);
+      console.log('🎵 Audio track enabled:', audioTrack.enabled);
+
+      // Create MediaBunny audio source with explicit duration
+      const audioSource = new MediaStreamAudioTrackSource(audioTrack, {
+        codec: 'aac',
+        bitrate: 128e3,
+      });
+
+      console.log('🎵 Audio source created, duration will be:', duration, 'seconds');
+
+      // Cleanup function to stop audio
+      const cleanup = () => {
+        audioElement.pause();
+        audioElement.src = '';
+        audioContext.close();
+      };
+
+      // Keep audio playing for slightly longer than video duration
+      setTimeout(() => {
+        console.log('🎵 Video duration reached, but keeping audio playing...');
+      }, duration * 1000);
+
+      // Only stop after extra time to ensure full capture
+      setTimeout(() => {
+        console.log('🎵 Now stopping audio element...');
+        audioElement.pause();
+      }, (duration + 1) * 1000);
+
+      return { audioSource, cleanup };
+
+    } catch (error) {
+      console.error('❌ Error creating audio stream:', error);
+      return null;
+    }
+  }, []);
+
+  const startRecording = useCallback(async (canvas: HTMLCanvasElement, duration: number = 5, enableMusic: boolean = false) => {
     if (isRecordingRef.current) {
       throw new Error('Already recording');
     }
 
     isRecordingRef.current = true;
 
-    // Log canvas dimensions for debugging
-    console.log(`🖼️ Canvas dimensions: ${canvas.width}x${canvas.height}`);
+    // Lock canvas size during recording to prevent MediaBunny errors
+    const originalCanvasWidth = canvas.width;
+    const originalCanvasHeight = canvas.height;
+
+    console.log(`🖼️ Canvas dimensions locked at: ${originalCanvasWidth}x${originalCanvasHeight}`);
 
     // Ensure canvas dimensions are even numbers (required by some encoders)
-    if (canvas.width % 2 !== 0 || canvas.height % 2 !== 0) {
+    if (originalCanvasWidth % 2 !== 0 || originalCanvasHeight % 2 !== 0) {
       console.warn('⚠️ Canvas dimensions should be even numbers for better codec compatibility');
     }
+
+    // Store original canvas style to restore later
+    // const originalCanvasStyle = {
+    //   width: canvas.style.width,
+    //   height: canvas.style.height,
+    // };
 
     // Create output with MP4 format
     const output = new Output({
@@ -35,6 +157,25 @@ export const useVideoCapture = () => {
 
     // Add video track with 30 FPS
     output.addVideoTrack(videoSource, { frameRate: 30 });
+
+    // Add audio track if music is enabled
+    if (enableMusic) {
+      try {
+        console.log('🎵 Loading background music...');
+        const audioResult = await createAudioStreamFromFile('/background-music.mp3', duration);
+        if (audioResult) {
+          output.addAudioTrack(audioResult.audioSource);
+          audioSourceRef.current = audioResult.audioSource;
+          audioCleanupRef.current = audioResult.cleanup;
+          console.log('✅ Background music added');
+          console.log('🎵 Audio track will be active for:', duration, 'seconds');
+        } else {
+          console.warn('⚠️ Failed to load music, continuing without audio');
+        }
+      } catch (error) {
+        console.warn('⚠️ Music loading failed, continuing without audio:', error);
+      }
+    }
 
     // Store references
     outputRef.current = output;
@@ -62,6 +203,13 @@ export const useVideoCapture = () => {
         const durationInSeconds = 1 / fps;
 
         try {
+          // Ensure canvas size remains constant during recording
+          if (canvas.width !== originalCanvasWidth || canvas.height !== originalCanvasHeight) {
+            console.warn(`⚠️ Canvas size changed during recording: ${canvas.width}x${canvas.height}, forcing back to ${originalCanvasWidth}x${originalCanvasHeight}`);
+            canvas.width = originalCanvasWidth;
+            canvas.height = originalCanvasHeight;
+          }
+
           videoSource.add(timestampInSeconds, durationInSeconds);
           frameCount++;
 
@@ -93,10 +241,22 @@ export const useVideoCapture = () => {
 
       return new Uint8Array(buffer);
     } finally {
-      // Clean up
+      // Clean up video first, then audio after a small delay
       isRecordingRef.current = false;
       outputRef.current = null;
       videoSourceRef.current = null;
+      audioSourceRef.current = null;
+
+      // Delay audio cleanup to ensure all audio data is captured
+      if (audioCleanupRef.current) {
+        setTimeout(() => {
+          if (audioCleanupRef.current) {
+            console.log('🎵 Cleaning up audio...');
+            audioCleanupRef.current();
+            audioCleanupRef.current = null;
+          }
+        }, 500);
+      }
     }
   }, []);
 
@@ -108,9 +268,14 @@ export const useVideoCapture = () => {
     try {
       await outputRef.current.cancel();
     } finally {
+      if (audioCleanupRef.current) {
+        audioCleanupRef.current();
+        audioCleanupRef.current = null;
+      }
       isRecordingRef.current = false;
       outputRef.current = null;
       videoSourceRef.current = null;
+      audioSourceRef.current = null;
     }
   }, []);
 
@@ -132,6 +297,7 @@ export const useVideoCapture = () => {
     startRecording,
     stopRecording,
     downloadVideo,
+    createAudioStreamFromFile,
     isRecording: isRecordingRef.current,
   };
 };

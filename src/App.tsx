@@ -43,6 +43,7 @@ export default function App() {
   const [isDraggingAsset, setIsDraggingAsset] = useState(false);
   const [currentCameraPosition, setCurrentCameraPosition] = useState<THREE.Vector3>(new THREE.Vector3(0, 1, 5));
   const [showInstructions, setShowInstructions] = useState(true);
+  const [enableMusic, setEnableMusic] = useState(true);
 
   const { startRecording, downloadVideo } = useVideoCapture();
   const {
@@ -122,8 +123,8 @@ export default function App() {
       console.log('📏 Using dynamic duration:', dynamicDuration, 'seconds');
       console.log('🎥 Starting canvas recording...');
 
-      // Start recording with dynamic duration
-      const videoData = await startRecording(canvasRef.current, dynamicDuration);
+      // Start recording with dynamic duration and optional music
+      const videoData = await startRecording(canvasRef.current, dynamicDuration, enableMusic);
 
       console.log('✅ Recording completed, stopping animation...');
 
@@ -367,6 +368,7 @@ export default function App() {
           </div>
         </div>
 
+
         {/* Video Generation */}
         <div
           className="bg-black/90 p-5 rounded-xl border border-white/10 backdrop-blur-sm"
@@ -400,6 +402,21 @@ export default function App() {
             }}
           >
             Creates dynamic videos with ultra-close camera movements. Single assets: 20s dramatic zoom showcase. Multiple assets: Dynamic duration (4s per asset) with individual close-up tours.
+          </div>
+
+          {/* Music Toggle - Right above generate button */}
+          <div className="flex items-center justify-between mb-3 p-2 bg-gray-800/30 rounded border border-gray-600">
+            <span className="text-white text-sm">🎵 Music</span>
+            <button
+              onClick={() => setEnableMusic(!enableMusic)}
+              className={`px-2 py-1 rounded text-xs transition-colors ${
+                enableMusic
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-600 text-gray-300'
+              }`}
+            >
+              {enableMusic ? 'ON' : 'OFF'}
+            </button>
           </div>
 
           <button
