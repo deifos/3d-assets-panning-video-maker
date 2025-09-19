@@ -42,6 +42,7 @@ export default function App() {
   const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [isDraggingAsset, setIsDraggingAsset] = useState(false);
   const [currentCameraPosition, setCurrentCameraPosition] = useState<THREE.Vector3>(new THREE.Vector3(0, 1, 5));
+  const [showInstructions, setShowInstructions] = useState(true);
 
   const { startRecording, downloadVideo } = useVideoCapture();
   const {
@@ -422,6 +423,35 @@ export default function App() {
           )}
         </div>
       </div>
+
+      {/* Instructions Popup */}
+      {showInstructions && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-gray-900 p-8 rounded-xl border border-white/20 max-w-md mx-4">
+            <h2 className="text-white text-2xl font-bold mb-4">Welcome! 🎬</h2>
+            <div className="text-gray-300 space-y-3 mb-6">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">📁</span>
+                <span><strong>Upload</strong> your .glb/.gltf 3D assets</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">📹</span>
+                <span><strong>Position</strong> camera with right-click drag</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">🎥</span>
+                <span><strong>Generate</strong> ultra-close video showcase</span>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowInstructions(false)}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
 
     </div>
   );
