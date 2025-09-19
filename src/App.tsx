@@ -6,6 +6,7 @@ import { useVideoCapture } from "./hooks/useVideoCapture";
 import { useAssetManager } from "./hooks/useAssetManager";
 import { DynamicCameraRig } from "./components/DynamicCameraRig";
 import { AssetRenderer } from "./components/AssetRenderer";
+import { Footer } from "./components/footer";
 import type { DynamicCameraRigRef } from "./components/DynamicCameraRig";
 
 // Camera tracker component
@@ -146,10 +147,10 @@ export default function App() {
   }, [startRecording, downloadVideo, isRecording, assets.length]);
 
   return (
-    <div className="relative w-screen h-screen">
+    <div className="relative w-screen min-h-screen flex flex-col">
       <Canvas
         ref={canvasRef}
-        className="w-full h-full bg-gray-900"
+        className="w-full flex-1 bg-gray-900"
         camera={{ position: [0, 1, 5], fov: 50 }}
         shadows={false}
       >
@@ -470,6 +471,7 @@ export default function App() {
         </div>
       )}
 
+      <Footer />
     </div>
   );
 }
