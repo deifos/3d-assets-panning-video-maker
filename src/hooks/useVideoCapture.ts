@@ -166,13 +166,13 @@ export const useVideoCapture = () => {
       try {
         console.log('🍎 Mac detected: Using high-profile H.264 for best quality');
         videoSource = new CanvasSource(canvas, {
-          codec: 'avc1.640028', // H.264 High profile (original working on Mac)
+          codec: 'avc1.640028' as any, // H.264 High profile (original working on Mac)
           bitrate: highQualityBitrate,
         });
       } catch (error) {
-        console.warn('⚠️ H.264 High not supported on Mac, trying Baseline...');
+        console.warn('⚠️ H.264 High not supported on Mac, trying standard AVC...');
         videoSource = new CanvasSource(canvas, {
-          codec: 'avc1.42001e', // H.264 Baseline fallback
+          codec: 'avc', // Standard H.264
           bitrate: highQualityBitrate,
         });
       }
@@ -181,14 +181,14 @@ export const useVideoCapture = () => {
       try {
         console.log('🪟 Windows detected: Using H.264 Baseline for compatibility');
         videoSource = new CanvasSource(canvas, {
-          codec: 'avc1.42001e', // H.264 Baseline (Windows compatible)
+          codec: 'avc1.42001e' as any, // H.264 Baseline (Windows compatible)
           bitrate: highQualityBitrate,
         });
       } catch (error) {
         console.warn('⚠️ H.264 Baseline not supported, trying VP9...');
         try {
           videoSource = new CanvasSource(canvas, {
-            codec: 'vp09.00.10.08', // VP9 fallback
+            codec: 'vp9', // VP9 fallback
             bitrate: highQualityBitrate,
           });
         } catch (error2) {
@@ -202,15 +202,15 @@ export const useVideoCapture = () => {
     } else {
       // Other platforms: Universal fallback
       try {
-        console.log('🖥️ Other platform detected: Using H.264 Baseline');
+        console.log('🖥️ Other platform detected: Using standard H.264');
         videoSource = new CanvasSource(canvas, {
-          codec: 'avc1.42001e',
+          codec: 'avc',
           bitrate: highQualityBitrate,
         });
       } catch (error) {
-        console.warn('⚠️ H.264 not supported, using original codec');
+        console.warn('⚠️ H.264 not supported, trying VP8');
         videoSource = new CanvasSource(canvas, {
-          codec: 'avc',
+          codec: 'vp8',
           bitrate: highQualityBitrate,
         });
       }
