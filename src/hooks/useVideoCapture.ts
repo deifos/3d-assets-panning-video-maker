@@ -151,11 +151,70 @@ export const useVideoCapture = () => {
       target: new BufferTarget(),
     });
 
-    // Create video source from canvas with the original working configuration
-    const videoSource = new CanvasSource(canvas, {
-      codec: 'avc',
-      bitrate: 2e6, // Back to 2 Mbps which was working
-    });
+    // Create video source with platform-optimized codec and quality settings
+    const isWindows = navigator.platform.toLowerCase().includes('win');
+    const isMac = navigator.platform.toLowerCase().includes('mac');
+
+    // Higher quality settings
+    const highQualityBitrate = 4e6; // 4 Mbps for better quality
+
+    let videoSource: CanvasSource;
+
+    // Platform-specific codec selection for optimal quality and compatibility
+    if (isMac) {
+      // Mac: Try high-profile H.264 first (original working config), then fallback
+      try {
+        console.log('🍎 Mac detected: Using high-profile H.264 for best quality');
+        videoSource = new CanvasSource(canvas, {
+          codec: 'avc1.640028', // H.264 High profile (original working on Mac)
+          bitrate: highQualityBitrate,
+        });
+      } catch (error) {
+        console.warn('⚠️ H.264 High not supported on Mac, trying Baseline...');
+        videoSource = new CanvasSource(canvas, {
+          codec: 'avc1.42001e', // H.264 Baseline fallback
+          bitrate: highQualityBitrate,
+        });
+      }
+    } else if (isWindows) {
+      // Windows: Start with compatible baseline, then try higher profiles
+      try {
+        console.log('🪟 Windows detected: Using H.264 Baseline for compatibility');
+        videoSource = new CanvasSource(canvas, {
+          codec: 'avc1.42001e', // H.264 Baseline (Windows compatible)
+          bitrate: highQualityBitrate,
+        });
+      } catch (error) {
+        console.warn('⚠️ H.264 Baseline not supported, trying VP9...');
+        try {
+          videoSource = new CanvasSource(canvas, {
+            codec: 'vp09.00.10.08', // VP9 fallback
+            bitrate: highQualityBitrate,
+          });
+        } catch (error2) {
+          console.warn('⚠️ VP9 not supported, trying VP8...');
+          videoSource = new CanvasSource(canvas, {
+            codec: 'vp8', // VP8 final fallback
+            bitrate: highQualityBitrate,
+          });
+        }
+      }
+    } else {
+      // Other platforms: Universal fallback
+      try {
+        console.log('🖥️ Other platform detected: Using H.264 Baseline');
+        videoSource = new CanvasSource(canvas, {
+          codec: 'avc1.42001e',
+          bitrate: highQualityBitrate,
+        });
+      } catch (error) {
+        console.warn('⚠️ H.264 not supported, using original codec');
+        videoSource = new CanvasSource(canvas, {
+          codec: 'avc',
+          bitrate: highQualityBitrate,
+        });
+      }
+    }
 
     // Add video track with 30 FPS
     output.addVideoTrack(videoSource, { frameRate: 30 });
